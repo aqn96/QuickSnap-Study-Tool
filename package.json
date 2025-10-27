@@ -1,0 +1,16 @@
+{
+  "name": "quiksnap-study-tool",
+  "version": "1.0.0",
+  "description": "QuikSnap Study Tool - Free AI-powered study notes and quizzes from your screen",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "start-ocr": "python ocr-service/ocr_server.py"
+  },
+  "keywords": ["study", "recorder", "ocr", "ai", "notes", "quiz", "education"],
+  "author": "You",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^27.0.0"
+  }
+}

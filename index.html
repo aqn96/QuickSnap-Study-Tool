@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuikSnap Study Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-start {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-start:hover:not(:disabled) {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .btn-stop {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-stop:hover:not(:disabled) {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        .btn-generate {
+            background: #8b5cf6;
+            color: white;
+        }
+
+        .btn-generate:hover:not(:disabled) {
+            background: #7c3aed;
+            transform: translateY(-2px);
+        }
+
+        .btn-copy {
+            background: #3b82f6;
+            color: white;
+            margin-left: auto;
+        }
+
+        .btn-copy:hover:not(:disabled) {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        .btn-quiz {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-quiz:hover:not(:disabled) {
+            background: #d97706;
+            transform: translateY(-2px);
+        }
+
+        .quiz-settings {
+            background: #fef3c7;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #fcd34d;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quiz-settings label {
+            font-weight: 600;
+            color: #92400e;
+        }
+
+        .quiz-settings input,
+        .quiz-settings select {
+            padding: 8px 12px;
+            border: 1px solid #fcd34d;
+            border-radius: 5px;
+            background: white;
+        }
+
+        .quiz-settings input {
+            width: 80px;
+        }
+
+        .quiz-settings select {
+            width: 120px;
+        }
+
+        .status {
+            padding: 20px;
+            background: #f3f4f6;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: #6b7280;
+        }
+
+        .status-value {
+            color: #111827;
+            font-weight: 500;
+        }
+
+        .recording-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #ef4444;
+            border-radius: 50%;
+            margin-left: 10px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .preview {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 10px;
+            border: 2px dashed #d1d5db;
+        }
+
+        .preview h3 {
+            margin-bottom: 15px;
+            color: #374151;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .preview-item {
+            aspect-ratio: 16/9;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #e5e7eb;
+            position: relative;
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-item .timestamp {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        .notes-section {
+            margin-top: 30px;
+        }
+
+        .notes-section h3 {
+            margin-bottom: 15px;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .notes-content {
+            background: #f9fafb;
+            padding: 25px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            min-height: 200px;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            line-height: 1.8;
+            font-size: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #8b5cf6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .settings {
+            background: #fffbeb;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #fde047;
+        }
+
+        .settings label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #92400e;
+        }
+
+        .settings input {
+            padding: 8px 12px;
+            border: 1px solid #fde047;
+            border-radius: 5px;
+            width: 150px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ QuikSnap Study Tool</h1>
+            <p>Free AI-powered note generation from your screen</p>
+        </div>
+
+        <div class="content">
+            <div class="settings">
+                <label for="captureInterval">Capture Interval (seconds):</label>
+                <input type="number" id="captureInterval" value="20" min="5" max="60">
+            </div>
+
+            <div class="controls">
+                <button id="startBtn" class="btn-start">▶ Start Recording</button>
+                <button id="stopBtn" class="btn-stop" disabled>⏹ Stop Recording</button>
+                <button id="generateBtn" class="btn-generate" disabled>✨ Generate Notes</button>
+                <button id="quizBtn" class="btn-quiz" disabled>📝 Generate Quiz</button>
+            </div>
+            
+            <div class="quiz-settings" id="quizSettings" style="display: none;">
+                <label for="quizCount">Number of Questions:</label>
+                <input type="number" id="quizCount" value="10" min="5" max="50">
+                <label for="quizDifficulty" style="margin-left: 20px;">Difficulty:</label>
+                <select id="quizDifficulty">
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
+                    <option value="mixed">Mixed</option>
+                </select>
+            </div>
+
+            <div class="status">
+                <div class="status-item">
+                    <span class="status-label">Status:</span>
+                    <span class="status-value" id="status">Ready</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Screenshots Captured:</span>
+                    <span class="status-value" id="captureCount">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Session Duration:</span>
+                    <span class="status-value" id="duration">00:00</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Text Extracted:</span>
+                    <span class="status-value" id="textCount">0 words</span>
+                </div>
+            </div>
+
+            <div class="preview">
+                <h3>Recent Captures</h3>
+                <div class="preview-grid" id="previewGrid">
+                    <div style="grid-column: 1/-1; text-align: center; color: #9ca3af; padding: 40px;">
+                        No captures yet. Start recording to see your screenshots here.
+                    </div>
+                </div>
+            </div>
+
+            <div class="notes-section">
+                <h3>
+                    Generated Notes
+                    <button id="copyBtn" class="btn-copy" style="display: none;">📋 Copy Notes</button>
+                </h3>
+                <div class="notes-content" id="notesContent">
+                    Your study notes will appear here after processing...
+                </div>
+            </div>
+
+            <div class="notes-section" id="quizSection" style="display: none;">
+                <h3>
+                    Quiz Questions
+                    <button id="copyQuizBtn" class="btn-copy" style="display: none;">📋 Copy Quiz</button>
+                </h3>
+                <div class="notes-content" id="quizContent">
+                    Your quiz will appear here...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
