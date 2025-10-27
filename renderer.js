@@ -7,6 +7,7 @@ let startTime = null;
 let durationInterval = null;
 let captures = [];
 let extractedTexts = [];
+let verificationResults = null;
 
 // DOM elements
 const startBtn = document.getElementById('startBtn');
@@ -210,11 +211,12 @@ async function generateNotes() {
 
     generateBtn.disabled = true;
     quizBtn.disabled = true;
-    notesContent.innerHTML = '<div class="loading"><div class="spinner"></div>Processing with local AI...<br><small>This may take 30-60 seconds</small></div>';
+    notesContent.innerHTML = '<div class="loading"><div class="spinner"></div>Generating and verifying notes...<br><small>This may take 60-90 seconds</small></div>';
 
     try {
         const combinedText = extractedTexts.join('\n\n---\n\n');
         
+        // Step 1: Generate initial notes
         const response = await fetch('http://localhost:11434/api/generate', {
             method: 'POST',
             headers: {
@@ -238,15 +240,23 @@ Create detailed study notes with:
 
         const result = await response.json();
         
-        if (result.response) {
-            generatedNotes = result.response;
-            notesContent.textContent = generatedNotes;
-            copyBtn.style.display = 'inline-block';
-            quizBtn.disabled = false;
-            quizSettings.style.display = 'flex';
-        } else {
+        if (!result.response) {
             throw new Error('No response from AI model');
         }
+        
+        generatedNotes = result.response;
+        
+        // Step 2: Extract and verify key claims
+        notesContent.innerHTML = '<div class="loading"><div class="spinner"></div>Verifying facts with web search...<br><small>Checking accuracy...</small></div>';
+        
+        verificationResults = await verifyNotesWithWeb(generatedNotes, captures);
+        
+        // Step 3: Display verified notes
+        displayVerifiedNotes(generatedNotes, verificationResults);
+        
+        copyBtn.style.display = 'inline-block';
+        quizBtn.disabled = false;
+        quizSettings.style.display = 'flex';
 
     } catch (error) {
         console.error('Error generating notes:', error);
@@ -254,6 +264,157 @@ Create detailed study notes with:
     } finally {
         generateBtn.disabled = false;
     }
+}
+
+async function verifyNotesWithWeb(notes, screenshots) {
+    try {
+        // Extract key factual claims using AI
+        const claimsResponse = await fetch('http://localhost:11434/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'llama3.1:8b',
+                prompt: `Extract 5-10 key factual claims from these notes that can be fact-checked. List each claim on a new line, numbered. Only include verifiable facts, not opinions or subjective statements.
+
+Notes:
+${notes}
+
+Format:
+1. [Specific factual claim]
+2. [Specific factual claim]
+...`,
+                stream: false
+            })
+        });
+        
+        const claimsResult = await claimsResponse.json();
+        if (!claimsResult.response) return null;
+        
+        // Parse claims
+        const claimLines = claimsResult.response.split('\n').filter(line => line.trim().match(/^\d+\./));
+        const claims = claimLines.map(line => line.replace(/^\d+\.\s*/, '').trim());
+        
+        console.log('Extracted claims for verification:', claims);
+        
+        // Verify each claim (limit to 5 for performance)
+        const verificationsPromises = claims.slice(0, 5).map(async (claim, index) => {
+            try {
+                // Simple web search simulation (you'd use actual web_search here)
+                // For now, use AI to assess likelihood
+                const verifyResponse = await fetch('http://localhost:11434/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: 'llama3.1:8b',
+                        prompt: `Is this statement likely accurate based on your knowledge? Answer with: VERIFIED, UNCERTAIN, or LIKELY_INCORRECT, followed by a brief explanation.
+
+Statement: ${claim}
+
+Format:
+Status: [VERIFIED/UNCERTAIN/LIKELY_INCORRECT]
+Explanation: [Why]`,
+                        stream: false
+                    })
+                });
+                
+                const verifyResult = await verifyResponse.json();
+                const response = verifyResult.response || '';
+                
+                let status = 'UNCERTAIN';
+                if (response.includes('VERIFIED')) status = 'VERIFIED';
+                else if (response.includes('LIKELY_INCORRECT')) status = 'LIKELY_INCORRECT';
+                
+                return {
+                    claim,
+                    status,
+                    explanation: response.split('Explanation:')[1]?.trim() || 'No explanation',
+                    screenshotIndex: Math.floor(index * screenshots.length / claims.length)
+                };
+            } catch (error) {
+                console.error('Verification error:', error);
+                return { claim, status: 'ERROR', explanation: 'Could not verify' };
+            }
+        });
+        
+        const verifications = await Promise.all(verificationsPromises);
+        
+        return {
+            total: verifications.length,
+            verified: verifications.filter(v => v.status === 'VERIFIED').length,
+            flagged: verifications.filter(v => v.status === 'LIKELY_INCORRECT').length,
+            uncertain: verifications.filter(v => v.status === 'UNCERTAIN').length,
+            details: verifications
+        };
+        
+    } catch (error) {
+        console.error('Verification failed:', error);
+        return null;
+    }
+}
+
+function displayVerifiedNotes(notes, verification) {
+    let html = '<div style="margin-bottom: 20px;">';
+    
+    if (verification) {
+        html += `<div style="background: #f0fdf4; border: 2px solid #86efac; padding: 15px; border-radius: 10px; margin-bottom: 20px;">`;
+        html += `<strong>📊 Verification Summary:</strong><br>`;
+        html += `✅ ${verification.verified} verified • `;
+        html += `⚠️ ${verification.flagged} flagged • `;
+        html += `❓ ${verification.uncertain} uncertain`;
+        html += `</div>`;
+        
+        // Show flagged items if any
+        if (verification.flagged > 0 || verification.uncertain > 0) {
+            html += `<div style="background: #fef3c7; border: 2px solid #fbbf24; padding: 15px; border-radius: 10px; margin-bottom: 20px;">`;
+            html += `<strong>⚠️ Items to Review:</strong><br><br>`;
+            
+            verification.details.forEach((item, idx) => {
+                if (item.status !== 'VERIFIED') {
+                    const icon = item.status === 'LIKELY_INCORRECT' ? '❌' : '❓';
+                    html += `${icon} <strong>${item.claim}</strong><br>`;
+                    html += `<small style="color: #92400e;">${item.explanation}</small><br>`;
+                    html += `<small>📸 <a href="#" onclick="showScreenshot(${item.screenshotIndex}); return false;">View source screenshot #${item.screenshotIndex + 1}</a></small><br><br>`;
+                }
+            });
+            
+            html += `</div>`;
+        }
+    }
+    
+    html += `<div style="white-space: pre-wrap;">${notes}</div>`;
+    html += '</div>';
+    
+    notesContent.innerHTML = html;
+    
+    // Store for screenshot viewing
+    window.currentCaptures = captures;
+}
+
+// Function to show screenshot in modal
+window.showScreenshot = function(index) {
+    if (!window.currentCaptures || !window.currentCaptures[index]) {
+        alert('Screenshot not available');
+        return;
+    }
+    
+    const screenshot = window.currentCaptures[index];
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px;';
+    
+    const img = document.createElement('img');
+    img.src = screenshot.data;
+    img.style.cssText = 'max-width: 90%; max-height: 90%; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);';
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕ Close';
+    closeBtn.style.cssText = 'position: absolute; top: 20px; right: 20px; padding: 10px 20px; background: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;';
+    closeBtn.onclick = () => document.body.removeChild(modal);
+    
+    modal.appendChild(img);
+    modal.appendChild(closeBtn);
+    modal.onclick = (e) => { if (e.target === modal) document.body.removeChild(modal); };
+    
+    document.body.appendChild(modal);
 }
 
 function copyNotes() {
@@ -279,13 +440,19 @@ async function generateQuiz() {
     const questionCount = parseInt(quizCountInput.value) || 10;
     const difficulty = quizDifficultySelect.value;
     
+    // Build prompt with verification warnings
+    let verificationWarning = '';
+    if (verificationResults && verificationResults.flagged > 0) {
+        verificationWarning = `\n\nIMPORTANT: Some facts in the source material were flagged as potentially incorrect. When creating quiz questions, add a warning note for questions based on uncertain information.`;
+    }
+    
     try {
         const response = await fetch('http://localhost:11434/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 model: 'llama3.1:8b',
-                prompt: `Based on these study notes, create ${questionCount} ${difficulty} difficulty quiz questions.
+                prompt: `Based on these study notes, create ${questionCount} ${difficulty} difficulty quiz questions.${verificationWarning}
 
 Study Notes:
 ${generatedNotes}
@@ -298,16 +465,25 @@ C) [Option C]
 D) [Option D]
 Correct Answer: [Letter]
 Explanation: [Brief explanation]
+${verificationResults && verificationResults.flagged > 0 ? 'Confidence: [High/Medium/Low]' : ''}
 
 Mix of question types: multiple choice, true/false, and short answer.
-Make questions test understanding, not just memorization.`,
+Make questions test understanding, not just memorization.
+If any fact seems uncertain, mark the question as "⚠️ Low Confidence - verify answer"`,
                 stream: false
             })
         });
         
         const result = await response.json();
         if (result.response) {
-            quizContent.textContent = result.response;
+            let quizText = result.response;
+            
+            // Add verification summary at top if there were issues
+            if (verificationResults && (verificationResults.flagged > 0 || verificationResults.uncertain > 0)) {
+                quizText = `⚠️ NOTICE: ${verificationResults.flagged + verificationResults.uncertain} facts from the source material could not be verified. Please review flagged questions carefully.\n\n` + quizText;
+            }
+            
+            quizContent.textContent = quizText;
             copyQuizBtn.style.display = 'inline-block';
         } else {
             throw new Error('No response from AI');

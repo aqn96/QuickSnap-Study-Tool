@@ -41,6 +41,7 @@ const modeBadge = document.getElementById('modeBadge');
 const audioWordCountEl = document.getElementById('audioWordCount');
 
 let generatedNotes = '';
+let verificationResults = null;
 
 // Event listeners
 startBtn.addEventListener('click', startRecording);

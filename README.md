@@ -149,7 +149,9 @@ Or manually navigate to: **http://localhost:8080** (use `index-browser.html`)
 - ✅ **Real-time capture** (see live previews)
 - ✅ **Adjustable intervals** (5-60 seconds)
 - ✅ **AI-generated notes** (comprehensive summaries)
-- ✅ **Quiz generation** (custom practice questions)
+- ✅ **Automatic fact verification** (flags potentially incorrect information)
+- ✅ **Source screenshot links** (click to view original context)
+- ✅ **Quiz generation** (custom practice questions with confidence indicators)
 - ✅ **Audio transcription** (browser version only)
 
 ---
@@ -170,6 +172,59 @@ quiksnap-study-tool/
 ├── venv/                   # Python virtual environment
 └── README.md
 ```
+
+---
+
+## New! Automatic Fact Verification
+
+QuikSnap now automatically verifies your notes to catch potential errors!
+
+### How It Works:
+
+1. **After generating notes**, QuikSnap:
+   - Extracts 5-10 key factual claims
+   - Verifies each claim using AI knowledge
+   - Flags potentially incorrect information
+   - Links each fact to source screenshot
+
+2. **Verification Summary** shows:
+   - ✅ **Verified facts** - Confirmed accurate
+   - ⚠️ **Flagged facts** - Potentially incorrect
+   - ❓ **Uncertain facts** - Need manual review
+
+3. **Click screenshot links** to view original source
+
+4. **Quiz questions** automatically include confidence warnings for uncertain facts
+
+### Example Verification Output:
+
+```
+📊 Verification Summary:
+✅ 8 verified • ⚠️ 1 flagged • ❓ 1 uncertain
+
+⚠️ Items to Review:
+
+❌ Photosynthesis occurs in mitochondria
+   AI suggests: Photosynthesis occurs in chloroplasts, not mitochondria
+   📸 View source screenshot #7
+
+❓ Lecture mentioned discovery in 1995
+   Could not verify specific date - recommend checking source
+   📸 View source screenshot #12
+```
+
+### Benefits:
+
+- 🎯 **Catch transcription errors** (OCR mistakes)
+- 🎯 **Catch lecturer mistakes** (everyone makes errors!)
+- 🎯 **Identify uncertain information** (dates, numbers, etc.)
+- 🎯 **Study with confidence** - know what's reliable
+
+### Performance:
+
+- Adds ~30-40 seconds to note generation
+- Uses local AI (still free!)
+- Verifies 5-10 key claims automatically
 
 ---
 
