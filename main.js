@@ -1,4 +1,4 @@
-const { app, BrowserWindow, desktopCapturer, ipcMain } = require('electron');
+const { app, BrowserWindow, desktopCapturer, ipcMain, session } = require('electron');
 const path = require('path');
 
 let mainWindow;
@@ -14,9 +14,31 @@ function createWindow() {
     }
   });
 
+  // Setup display media request handler for audio capture
+  session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+    desktopCapturer.getSources({ types: ['screen', 'window'] }).then((sources) => {
+      // Grant access to the first source found with audio loopback
+      if (sources.length > 0) {
+        callback({ 
+          video: sources[0],
+          audio: 'loopback'  // This enables system audio capture!
+        });
+      } else {
+        callback({});
+      }
+    }).catch(err => {
+      console.error('Error getting sources:', err);
+      callback({});
+    });
+  });
+
   mainWindow.loadFile('index.html');
+  
+  // Open DevTools for debugging (optional)
+  // mainWindow.webContents.openDevTools();
 }
 
+// Handle screen capture source request (fallback)
 ipcMain.handle('get-sources', async () => {
   try {
     const sources = await desktopCapturer.getSources({

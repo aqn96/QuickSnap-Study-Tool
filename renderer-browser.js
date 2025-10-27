@@ -1,4 +1,4 @@
-const { ipcRenderer } = require('electron');
+// Browser version - no Electron dependencies
 
 // State management
 let isRecording = false;
@@ -7,6 +7,12 @@ let startTime = null;
 let durationInterval = null;
 let captures = [];
 let extractedTexts = [];
+let transcribedTexts = [];
+let recognition = null;
+let audioContext = null;
+let audioAnalyser = null;
+let currentAudioLevel = 0;
+let currentMode = 'visual';
 
 // DOM elements
 const startBtn = document.getElementById('startBtn');
@@ -27,6 +33,12 @@ const quizSettings = document.getElementById('quizSettings');
 const captureIntervalInput = document.getElementById('captureInterval');
 const quizCountInput = document.getElementById('quizCount');
 const quizDifficultySelect = document.getElementById('quizDifficulty');
+const recordingModeSelect = document.getElementById('recordingMode');
+const audioIndicator = document.getElementById('audioIndicator');
+const audioLevelFill = document.getElementById('audioLevelFill');
+const audioLevelText = document.getElementById('audioLevelText');
+const modeBadge = document.getElementById('modeBadge');
+const audioWordCountEl = document.getElementById('audioWordCount');
 
 let generatedNotes = '';
 
@@ -38,32 +50,153 @@ quizBtn.addEventListener('click', generateQuiz);
 copyBtn.addEventListener('click', copyNotes);
 copyQuizBtn.addEventListener('click', copyQuiz);
 
-async function startRecording() {
-    try {
-        const sources = await ipcRenderer.invoke('get-sources');
-        if (!sources || sources.length === 0) {
-            alert('No screen sources found. Please check permissions.');
-            return;
-        }
-
-        const primaryScreen = sources[0];
+// Audio transcription setup
+async function setupAudioTranscription(stream) {
+    const audioTracks = stream.getAudioTracks();
+    
+    if (audioTracks.length > 0) {
+        console.log('Audio track detected:', audioTracks[0].label);
         
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: false,
-            video: {
-                mandatory: {
-                    chromeMediaSource: 'desktop',
-                    chromeMediaSourceId: primaryScreen.id,
-                    minWidth: 1280,
-                    maxWidth: 1920,
-                    minHeight: 720,
-                    maxHeight: 1080
+        try {
+            audioContext = new AudioContext();
+            const source = audioContext.createMediaStreamSource(stream);
+            audioAnalyser = audioContext.createAnalyser();
+            audioAnalyser.fftSize = 256;
+            source.connect(audioAnalyser);
+            setInterval(updateAudioLevel, 100);
+        } catch (error) {
+            console.warn('Audio analysis setup failed:', error);
+        }
+    }
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        recognition.onresult = (event) => {
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                if (event.results[i].isFinal) {
+                    const transcript = event.results[i][0].transcript;
+                    transcribedTexts.push(transcript);
+                    const wordCount = transcribedTexts.join(' ').split(/\s+/).length;
+                    audioWordCountEl.textContent = `${wordCount} words`;
+                    console.log('Transcribed:', transcript);
                 }
             }
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+        };
+
+        recognition.onend = () => {
+            if (isRecording && (currentMode === 'audio' || currentMode === 'both')) {
+                try {
+                    recognition.start();
+                } catch (e) {
+                    console.log('Recognition restart failed');
+                }
+            }
+        };
+        
+        return true;
+    }
+    return false;
+}
+
+function startTranscription() {
+    if (recognition) {
+        try {
+            recognition.start();
+            audioIndicator.classList.add('active');
+            modeBadge.textContent = '🎤 Transcribing';
+            modeBadge.className = 'audio-mode-badge badge-transcribing';
+            console.log('Transcription started');
+        } catch (error) {
+            console.error('Failed to start transcription:', error);
+        }
+    }
+}
+
+function stopTranscription() {
+    if (recognition) {
+        recognition.stop();
+        audioIndicator.classList.remove('active');
+    }
+}
+
+function startScreenshots(video) {
+    const intervalSeconds = parseInt(captureIntervalInput.value) || 20;
+    captureInterval = setInterval(() => {
+        captureScreenshot(video);
+    }, intervalSeconds * 1000);
+    console.log(`Screenshots started. Interval: ${intervalSeconds}s`);
+}
+
+function updateAudioLevel() {
+    if (!audioAnalyser) return;
+
+    const bufferLength = audioAnalyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    audioAnalyser.getByteFrequencyData(dataArray);
+
+    let sum = 0;
+    for (let i = 0; i < bufferLength; i++) {
+        sum += dataArray[i];
+    }
+    const average = sum / bufferLength;
+    currentAudioLevel = average / 255;
+
+    audioLevelFill.style.width = `${currentAudioLevel * 100}%`;
+    audioLevelText.textContent = `${Math.round(currentAudioLevel * 100)}%`;
+}
+
+function checkAudioLevel() {
+    if (!isRecording || recordingModeSelect.value !== 'auto') return;
+
+    const threshold = 0.1;
+
+    if (currentAudioLevel > threshold && currentMode === 'visual') {
+        console.log('Audio detected! Switching to transcription...');
+        currentMode = 'audio';
+        if (captureInterval) {
+            clearInterval(captureInterval);
+            captureInterval = null;
+        }
+        startTranscription();
+    } else if (currentAudioLevel <= threshold && currentMode === 'audio') {
+        console.log('Audio stopped. Switching to screenshots...');
+        currentMode = 'visual';
+        stopTranscription();
+        const video = document.querySelector('video');
+        if (video) startScreenshots(video);
+    }
+}
+
+async function startRecording() {
+    try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+            audio: true,  // Request audio!
+            video: {
+                width: { ideal: 1920 },
+                height: { ideal: 1080 },
+                frameRate: { ideal: 30 }
+            }
         });
+        
+        const hasAudio = stream.getAudioTracks().length > 0;
+        console.log('Audio track available:', hasAudio);
+        
+        if (!hasAudio) {
+            console.warn('No audio. Make sure to select Chrome tab and check "Share audio"');
+        }
 
         const video = document.createElement('video');
         video.srcObject = stream;
+        video.muted = true;  // MUTE THE VIDEO ELEMENT - prevents feedback!
         video.play();
 
         await new Promise(resolve => {
@@ -74,6 +207,7 @@ async function startRecording() {
         startTime = Date.now();
         captures = [];
         extractedTexts = [];
+        transcribedTexts = [];
         
         startBtn.disabled = true;
         stopBtn.disabled = false;
@@ -87,15 +221,27 @@ async function startRecording() {
         copyQuizBtn.style.display = 'none';
         quizSection.style.display = 'none';
         quizSettings.style.display = 'none';
+        audioWordCountEl.textContent = '0 words';
 
         durationInterval = setInterval(updateDuration, 1000);
+        await setupAudioTranscription(stream);
 
-        const intervalSeconds = parseInt(captureIntervalInput.value) || 20;
-        captureInterval = setInterval(() => {
-            captureScreenshot(video);
-        }, intervalSeconds * 1000);
-
-        console.log(`Recording started. Capturing every ${intervalSeconds} seconds...`);
+        const selectedMode = recordingModeSelect.value;
+        if (selectedMode === 'audio') {
+            currentMode = 'audio';
+            startTranscription();
+        } else if (selectedMode === 'both') {
+            currentMode = 'both';
+            startTranscription();
+            startScreenshots(video);
+        } else if (selectedMode === 'auto') {
+            currentMode = 'visual';
+            startScreenshots(video);
+            setInterval(() => checkAudioLevel(), 2000);
+        } else {
+            currentMode = 'visual';
+            startScreenshots(video);
+        }
 
     } catch (error) {
         console.error('Error starting recording:', error);
@@ -117,13 +263,21 @@ function stopRecording() {
         durationInterval = null;
     }
 
+    if (recognition) {
+        recognition.stop();
+        recognition = null;
+    }
+
+    audioIndicator.classList.remove('active');
+
     startBtn.disabled = false;
     stopBtn.disabled = true;
-    generateBtn.disabled = captures.length === 0;
+    generateBtn.disabled = captures.length === 0 && transcribedTexts.length === 0;
     statusEl.textContent = 'Stopped';
 
-    if (captures.length > 0) {
-        notesContent.textContent = `Recording complete! Captured ${captures.length} screenshots with ${extractedTexts.length} text extractions. Click "Generate Notes" to process.`;
+    const totalContent = captures.length + transcribedTexts.length;
+    if (totalContent > 0) {
+        notesContent.textContent = `Recording complete! Captured ${captures.length} screenshots and ${transcribedTexts.length} audio segments. Click "Generate Notes" to process.`;
     }
 }
 
@@ -139,16 +293,11 @@ async function captureScreenshot(video) {
 
         const imageData = canvas.toDataURL('image/jpeg', 0.8);
         const timestamp = Date.now() - startTime;
-        
-        captures.push({
-            data: imageData,
-            timestamp: timestamp
-        });
+        captures.push({ data: imageData, timestamp: timestamp });
 
         updatePreview(imageData, timestamp);
         extractText(imageData);
         captureCountEl.textContent = captures.length;
-
     } catch (error) {
         console.error('Error capturing screenshot:', error);
     }
@@ -178,9 +327,7 @@ async function extractText(imageData) {
     try {
         const response = await fetch('http://localhost:5001/ocr', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: imageData })
         });
 
@@ -203,35 +350,35 @@ async function extractText(imageData) {
 }
 
 async function generateNotes() {
-    if (extractedTexts.length === 0) {
-        alert('No text was extracted. Make sure the OCR service is running.');
+    if (extractedTexts.length === 0 && transcribedTexts.length === 0) {
+        alert('No content captured.');
         return;
     }
 
     generateBtn.disabled = true;
     quizBtn.disabled = true;
-    notesContent.innerHTML = '<div class="loading"><div class="spinner"></div>Processing with local AI...<br><small>This may take 30-60 seconds</small></div>';
+    notesContent.innerHTML = '<div class="loading"><div class="spinner"></div>Processing with local AI...</div>';
 
     try {
-        const combinedText = extractedTexts.join('\n\n---\n\n');
+        let combinedText = '';
+        
+        if (extractedTexts.length > 0) {
+            combinedText += '=== TEXT FROM SCREENSHOTS ===\n\n';
+            combinedText += extractedTexts.join('\n\n---\n\n');
+        }
+        
+        if (transcribedTexts.length > 0) {
+            if (combinedText) combinedText += '\n\n';
+            combinedText += '=== TRANSCRIBED AUDIO ===\n\n';
+            combinedText += transcribedTexts.join(' ');
+        }
         
         const response = await fetch('http://localhost:11434/api/generate', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 model: 'llama3.1:8b',
-                prompt: `You are a study assistant. Create comprehensive, well-organized study notes from the following content. Format with clear sections, bullet points for key concepts, and highlight important information.
-
-Content:
-${combinedText}
-
-Create detailed study notes with:
-1. Summary
-2. Key Concepts
-3. Important Details
-4. Action Items (if applicable)`,
+                prompt: `Create comprehensive study notes from:\n\n${combinedText}\n\nInclude: Summary, Key Concepts, Important Details`,
                 stream: false
             })
         });
@@ -245,12 +392,10 @@ Create detailed study notes with:
             quizBtn.disabled = false;
             quizSettings.style.display = 'flex';
         } else {
-            throw new Error('No response from AI model');
+            throw new Error('No response from AI');
         }
-
     } catch (error) {
-        console.error('Error generating notes:', error);
-        notesContent.textContent = `Error generating notes: ${error.message}\n\nMake sure Ollama is running.`;
+        notesContent.textContent = `Error: ${error.message}\n\nMake sure Ollama is running.`;
     } finally {
         generateBtn.disabled = false;
     }
@@ -260,21 +405,19 @@ function copyNotes() {
     navigator.clipboard.writeText(notesContent.textContent).then(() => {
         const originalText = copyBtn.textContent;
         copyBtn.textContent = '✅ Copied!';
-        setTimeout(() => {
-            copyBtn.textContent = originalText;
-        }, 2000);
+        setTimeout(() => { copyBtn.textContent = originalText; }, 2000);
     });
 }
 
 async function generateQuiz() {
     if (!generatedNotes) {
-        alert('Please generate notes first.');
+        alert('Generate notes first.');
         return;
     }
     
     quizBtn.disabled = true;
     quizSection.style.display = 'block';
-    quizContent.innerHTML = '<div class="loading"><div class="spinner"></div>Generating quiz questions...</div>';
+    quizContent.innerHTML = '<div class="loading"><div class="spinner"></div>Generating quiz...</div>';
     
     const questionCount = parseInt(quizCountInput.value) || 10;
     const difficulty = quizDifficultySelect.value;
@@ -285,22 +428,7 @@ async function generateQuiz() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 model: 'llama3.1:8b',
-                prompt: `Based on these study notes, create ${questionCount} ${difficulty} difficulty quiz questions.
-
-Study Notes:
-${generatedNotes}
-
-Generate exactly ${questionCount} questions in this format:
-Q1: [Question]
-A) [Option A]
-B) [Option B]
-C) [Option C]
-D) [Option D]
-Correct Answer: [Letter]
-Explanation: [Brief explanation]
-
-Mix of question types: multiple choice, true/false, and short answer.
-Make questions test understanding, not just memorization.`,
+                prompt: `Create ${questionCount} ${difficulty} quiz questions from:\n\n${generatedNotes}`,
                 stream: false
             })
         });
@@ -309,8 +437,6 @@ Make questions test understanding, not just memorization.`,
         if (result.response) {
             quizContent.textContent = result.response;
             copyQuizBtn.style.display = 'inline-block';
-        } else {
-            throw new Error('No response from AI');
         }
     } catch (error) {
         quizContent.textContent = `Error: ${error.message}`;
@@ -323,9 +449,7 @@ function copyQuiz() {
     navigator.clipboard.writeText(quizContent.textContent).then(() => {
         const originalText = copyQuizBtn.textContent;
         copyQuizBtn.textContent = '✅ Copied!';
-        setTimeout(() => {
-            copyQuizBtn.textContent = originalText;
-        }, 2000);
+        setTimeout(() => { copyQuizBtn.textContent = originalText; }, 2000);
     });
 }
 
@@ -359,21 +483,4 @@ function resetRecording() {
     statusEl.textContent = 'Ready';
 }
 
-async function checkServices() {
-    try {
-        const ocrResponse = await fetch('http://localhost:5001/health');
-        if (!ocrResponse.ok) throw new Error('OCR service not responding');
-        
-        const ollamaResponse = await fetch('http://localhost:11434/api/tags');
-        if (!ollamaResponse.ok) throw new Error('Ollama not responding');
-        
-        console.log('✅ All services ready');
-    } catch (error) {
-        console.warn('⚠️ Service check failed:', error.message);
-        alert('Warning: Some services may not be running.\n\nMake sure:\n1. OCR service is running (python ocr-service/ocr_server.py)\n2. Ollama is running (ollama serve)');
-    }
-}
-
-setTimeout(checkServices, 1000);
-
-console.log('✅ QuikSnap Electron app loaded');
+console.log('✅ QuikSnap loaded in Chrome - Audio capture enabled!');
