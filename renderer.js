@@ -75,6 +75,8 @@ async function startRecording() {
         startTime = Date.now();
         captures = [];
         extractedTexts = [];
+        verificationResults = null;
+        generatedNotes = '';
         
         startBtn.disabled = true;
         stopBtn.disabled = false;
@@ -88,6 +90,9 @@ async function startRecording() {
         copyQuizBtn.style.display = 'none';
         quizSection.style.display = 'none';
         quizSettings.style.display = 'none';
+        textCountEl.textContent = '0 words';
+        captureCountEl.textContent = '0';
+        durationEl.textContent = '00:00';
 
         durationInterval = setInterval(updateDuration, 1000);
 
