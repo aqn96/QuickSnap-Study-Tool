@@ -1,6 +1,6 @@
 # QuikSnap Study Tool
 
-A free desktop and browser app that captures your screen and generates AI-powered study notes and quizzes.
+A free desktop and browser app that captures your screen and generates AI-powered study notes and quizzes. Powered by a local open source llm.
 
 ## 🎯 Two Versions Available
 
