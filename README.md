@@ -1,76 +1,76 @@
 # QuikSnap Study Tool
 
-A free desktop and browser app that captures your screen and generates AI-powered study notes and quizzes. Powered by a local open source llm.
+A free desktop and browser app that captures your screen and generates AI-powered study notes and quizzes with automatic fact verification. Powered by local open-source LLMs.
 
 ## 🎯 Two Versions Available
 
-### 1. **Electron App** (Desktop - Simple)
+### 1. Electron App (Desktop - Simple)
 - ✅ Screenshot capture + OCR
-- ✅ AI note generation
+- ✅ AI note generation with verification
 - ✅ Quiz generation
+- ✅ Source screenshot viewer
 - ❌ No audio transcription
-- **Best for:** Documents, slides, reading
+- **Best for:** Documents, slides, reading, coding tutorials
 
-### 2. **Browser Version** (Chrome - With Audio!)
-- ✅ Screenshot capture + OCR
-- ✅ AI note generation
-- ✅ Quiz generation
+### 2. Browser Version (Chrome - With Audio!)
+- ✅ Everything from Electron app, PLUS:
 - ✅ **Audio transcription from Chrome tabs!**
-- **Best for:** Video lectures, online courses
+- **Best for:** Video lectures, online courses (YouTube, Coursera, etc.)
 
 ---
 
-## Electron App (Desktop Version)
+## Prerequisites
 
-### Prerequisites
+- **Node.js** v16+ - [Download](https://nodejs.org/)
+- **Python 3.8+** - [Download](https://python.org/)
+- **Ollama** - Local AI model runner
 
-- **Node.js** (v16 or higher)
-- **Python 3.8+**
-- **Ollama** - Local AI model
+---
 
-### Installation
+## Installation
 
-#### 1. Install Ollama
+### 1. Install Ollama
 ```bash
 # macOS/Linux
 curl -fsSL https://ollama.com/install.sh | sh
 
-# Windows
-# Download from: https://ollama.com/download/windows
+# Windows - download from: https://ollama.com/download/windows
 
 # Download the AI model (one-time, ~4.9GB)
 ollama pull llama3.1:8b
+
+# Verify
+ollama list
 ```
 
-#### 2. Setup Python Virtual Environment
+### 2. Setup Python Virtual Environment
 ```bash
 cd quiksnap-study-tool
-
-# Create virtual environment
 python3 -m venv venv
-
-# Activate it
 source venv/bin/activate  # macOS/Linux
-# venv\Scripts\activate  # Windows
+# venv\Scripts\activate on Windows
 ```
 
-#### 3. Install Python Dependencies
+### 3. Install Dependencies
 ```bash
+# Python packages
 pip3 install easyocr pillow flask flask-cors
-```
 
-#### 4. Install Node Dependencies
-```bash
+# Node packages
 npm install
 ```
 
-#### 5. macOS: Grant Screen Recording Permission
-- Go to: **System Settings → Privacy & Security → Screen Recording**
-- Enable **Terminal** (required!)
-- Enable **Electron** (if it appears)
-- Restart the app after granting permission
+### 4. macOS: Grant Screen Recording Permission
+- **System Settings → Privacy & Security → Screen Recording**
+- Enable **Terminal** ✅ (critical!)
+- Enable **Electron** ✅ (if appears)
+- **Restart app** after granting
 
-### Running the Electron App
+---
+
+## Running the App
+
+### Electron App (Desktop)
 
 **Terminal 1 - OCR Service:**
 ```bash
@@ -79,30 +79,13 @@ source venv/bin/activate
 python3 ocr-service/ocr_server.py
 ```
 
-**Terminal 2 - Electron App:**
+**Terminal 2 - App:**
 ```bash
 cd quiksnap-study-tool
 npm start
 ```
 
-### Usage (Electron)
-1. Click **"Start Recording"**
-2. Select screen/window to capture
-3. Study normally - screenshots captured every 20 seconds
-4. Click **"Stop Recording"**
-5. Click **"Generate Notes"**
-6. **(Optional)** Click **"Generate Quiz"**
-7. Copy and save your notes!
-
----
-
-## Browser Version (Chrome - With Audio!)
-
-### Why Use Browser Version?
-
-Chrome can capture **tab audio natively** - perfect for transcribing lectures from YouTube, Coursera, etc!
-
-### Running Browser Version
+### Browser Version (With Audio)
 
 **Terminal 1 - OCR Service:**
 ```bash
@@ -122,82 +105,65 @@ node server.js
 open -a "Google Chrome" http://localhost:8080
 ```
 
-Or manually navigate to: **http://localhost:8080** (use `index-browser.html`)
+---
 
-### Usage (Browser - WITH AUDIO)
+## Usage
 
-1. **Open your lecture** in a separate Chrome tab (YouTube, etc.)
+### Electron App:
+1. Click **Start Recording**
+2. Select screen/window
+3. Study (screenshots every 20s)
+4. Click **Stop Recording**
+5. Click **Generate Notes** (auto-verifies!)
+6. Review verification summary
+7. Click screenshot links to check sources
+8. **(Optional)** Generate Quiz
+
+### Browser Version (Audio):
+1. Open lecture in Chrome tab (YouTube, etc.)
 2. Go to QuikSnap tab (localhost:8080)
-3. Click **"Start Recording"**
-4. **Important:** Select the **Chrome Tab** with your lecture
-5. **Check "Share audio"** ✅
-6. Click **Share**
-7. Audio gets transcribed automatically! 🎤
-8. Stop recording when done
-9. Generate notes (combines audio + screenshots!)
-10. Generate quiz
-
-**Audio Tip:** The QuikSnap tab is automatically muted to prevent feedback loops!
+3. Click **Start Recording**
+4. Select **Chrome Tab** with lecture
+5. ✅ Check **"Share audio"**
+6. Click Share
+7. Audio transcribes automatically! 🎤
+8. Rest same as Electron app
 
 ---
 
 ## Features
 
-- ✅ **Free forever** (no API costs)
-- ✅ **Privacy-first** (runs completely locally)
-- ✅ **Smart deduplication** (skips identical screens)
-- ✅ **Real-time capture** (see live previews)
-- ✅ **Adjustable intervals** (5-60 seconds)
-- ✅ **AI-generated notes** (comprehensive summaries)
-- ✅ **Automatic fact verification** (flags potentially incorrect information)
-- ✅ **Source screenshot links** (click to view original context)
-- ✅ **Quiz generation** (custom practice questions with confidence indicators)
-- ✅ **Audio transcription** (browser version only)
+### Core Features
+- ✅ **$0 forever** - No API costs
+- ✅ **100% local** - Complete privacy
+- ✅ **Smart capture** - Auto-deduplication
+- ✅ **Live preview** - See captures in real-time
+- ✅ **Adjustable timing** - 5-60 second intervals
+
+### AI Features
+- ✅ **Auto-generated notes** - Comprehensive summaries
+- ✅ **Fact verification** - Flags incorrect info
+- ✅ **Source linking** - Click to view screenshots
+- ✅ **Quiz generation** - 5-50 custom questions
+- ✅ **Confidence indicators** - Know what's reliable
+
+### Browser-Only
+- ✅ **Audio transcription** - Chrome tab audio capture
+- ✅ **Smart modes** - Auto/Visual/Audio/Both
 
 ---
 
-## File Structure
+## 🔍 Fact Verification System
 
-```
-quiksnap-study-tool/
-├── index.html              # Electron app UI
-├── index-browser.html      # Browser version UI  
-├── main.js                 # Electron main process
-├── renderer.js             # Electron renderer (no audio)
-├── renderer-browser.js     # Browser renderer (with audio)
-├── server.js               # Web server for browser version
-├── ocr-service/
-│   └── ocr_server.py      # OCR service
-├── package.json
-├── venv/                   # Python virtual environment
-└── README.md
-```
-
----
-
-## New! Automatic Fact Verification
-
-QuikSnap now automatically verifies your notes to catch potential errors!
+QuikSnap automatically checks your notes for accuracy!
 
 ### How It Works:
+1. AI extracts 5-10 key factual claims
+2. Verifies each against its knowledge base
+3. Flags potentially incorrect information
+4. Links facts to source screenshots
 
-1. **After generating notes**, QuikSnap:
-   - Extracts 5-10 key factual claims
-   - Verifies each claim using AI knowledge
-   - Flags potentially incorrect information
-   - Links each fact to source screenshot
-
-2. **Verification Summary** shows:
-   - ✅ **Verified facts** - Confirmed accurate
-   - ⚠️ **Flagged facts** - Potentially incorrect
-   - ❓ **Uncertain facts** - Need manual review
-
-3. **Click screenshot links** to view original source
-
-4. **Quiz questions** automatically include confidence warnings for uncertain facts
-
-### Example Verification Output:
-
+### Verification Output:
 ```
 📊 Verification Summary:
 ✅ 8 verified • ⚠️ 1 flagged • ❓ 1 uncertain
@@ -205,350 +171,151 @@ QuikSnap now automatically verifies your notes to catch potential errors!
 ⚠️ Items to Review:
 
 ❌ Photosynthesis occurs in mitochondria
-   AI suggests: Photosynthesis occurs in chloroplasts, not mitochondria
+   AI suggests: Occurs in chloroplasts, not mitochondria
    📸 View source screenshot #7
 
-❓ Lecture mentioned discovery in 1995
-   Could not verify specific date - recommend checking source
+❓ Discovery mentioned in 1995
+   Could not verify specific date
    📸 View source screenshot #12
 ```
 
 ### Benefits:
+- 🎯 Catch OCR errors
+- 🎯 Catch lecturer mistakes
+- 🎯 Identify uncertain facts
+- 🎯 Study with confidence
 
-- 🎯 **Catch transcription errors** (OCR mistakes)
-- 🎯 **Catch lecturer mistakes** (everyone makes errors!)
-- 🎯 **Identify uncertain information** (dates, numbers, etc.)
-- 🎯 **Study with confidence** - know what's reliable
+**Note:** Verification uses AI's existing knowledge (not web search). Best for catching obvious errors and scientific facts.
 
-### Performance:
+---
 
-- Adds ~30-40 seconds to note generation
-- Uses local AI (still free!)
-- Verifies 5-10 key claims automatically
+## Quiz Generation
+
+Generate custom practice questions with confidence indicators!
+
+**Features:**
+- 5-50 questions (adjustable)
+- Easy/Medium/Hard/Mixed difficulty
+- Multiple choice, True/False, Short answer
+- Includes answers + explanations
+- ⚠️ Warnings on low-confidence questions
+
+**Example:**
+```
+⚠️ NOTICE: 2 facts could not be verified. Review carefully.
+
+Q1: What produces ATP in cells? ✅ High Confidence
+A) Mitochondria
+B) Nucleus
+C) Ribosomes
+D) Lysosomes
+Correct Answer: A
+Explanation: Mitochondria are the powerhouse of the cell...
+
+Q2: When was this discovered? ⚠️ Low Confidence - verify answer
+A) 1995
+B) 1998
+...
+```
+
+---
+
+## File Structure
+
+```
+quiksnap-study-tool/
+├── index.html              # Electron UI (no audio)
+├── index-browser.html      # Browser UI (with audio)
+├── main.js                 # Electron main process
+├── renderer.js             # Electron logic + verification
+├── renderer-browser.js     # Browser logic + verification
+├── server.js               # Web server
+├── ocr-service/
+│   └── ocr_server.py      # OCR text extraction
+├── package.json
+├── venv/                   # Python virtual environment
+└── README.md
+```
 
 ---
 
 ## Troubleshooting
 
-### Electron App Issues
-
-**"Could not start video source"**
-- Grant Screen Recording permission in System Settings
+### "Could not start video source"
+- Grant Screen Recording permission (System Settings)
 - Enable **Terminal** specifically
-- Restart the app completely
+- Completely quit and restart app
 
-**"No text extracted"**
+### "No text extracted"
 - OCR service must be running
 - Check: `curl http://localhost:5001/health`
-- Verify venv is activated
+- Verify venv activated: `source venv/bin/activate`
 
-### Browser Version Issues
+### "No audio" (Browser version)
+- Select **Chrome Tab** (not entire screen)
+- Check **"Share audio"** checkbox
+- Audio must be playing in selected tab
 
-**"No audio transcribed"**
-- Did you select **Chrome Tab** (not entire screen)?
-- Did you check **"Share audio"**?
-- Is audio actually playing in the selected tab?
-
-**Buttons unresponsive**
-- Check browser console for errors (F12)
-- Make sure `renderer-browser.js` exists
-- Hard refresh: Cmd+Shift+R
-
-### General Issues
-
-**Ollama not responding**
-- Check: `ollama list`
+### "Error generating notes"
+- Check Ollama: `ollama list`
 - If needed: `ollama serve`
 
-**Services not starting**
-- Verify all 3 prerequisites are installed
-- Check Python version: `python3 --version`
-- Check Node version: `node --version`
+### Port 5001 already in use
+- macOS uses port 5000 for ControlCenter
+- App automatically uses 5001 to avoid conflict
 
 ---
-
-## Comparison
-
-| Feature | Electron App | Browser Version |
-|---------|--------------|-----------------|
-| **Screenshots** | ✅ Yes | ✅ Yes |
-| **OCR** | ✅ Yes | ✅ Yes |
-| **AI Notes** | ✅ Yes | ✅ Yes |
-| **Quiz** | ✅ Yes | ✅ Yes |
-| **Audio Transcription** | ❌ No | ✅ Yes (Chrome tabs!) |
-| **Setup** | Simple | Simple |
-| **Best For** | Docs, slides | Video lectures |
-
----
-
-## Tips for Best Results
-
-- 📚 **Electron app** is great for reading, documents, code
-- 🎥 **Browser version** is perfect for video lectures with audio
-- ⏱️ Use **20-second intervals** for most study sessions
-- 💾 OCR is very accurate for text-based content
-- 🎤 Audio transcription works with any Chrome tab playing audio
-
----
-
-## Cost Comparison
-
-| This App | Cloud Alternatives |
-|----------|-------------------|
-| **$0 forever** | $20-45 per 3-hour session |
-| Unlimited sessions | Pay per use |
-| Complete privacy | Data sent to cloud |
-| Runs offline | Requires internet |
-
----
-
-## Support
-
-- **Check services**: 
-  - OCR: `curl http://localhost:5001/health`
-  - Ollama: `ollama list`
-  - Web server: Check terminal for "Server Running!" message
-
-- **Logs**: View terminal windows for debugging
-
----
-
-**Enjoy your AI study assistant!** 🎓✨
-
-Choose the version that fits your study needs:
-- 📖 Reading/docs → **Electron app**
-- 🎬 Video lectures → **Browser version**
-
-## Prerequisites
-
-- **Node.js** (v16 or higher) - [Download here](https://nodejs.org/)
-- **Python 3.8+** - [Download here](https://python.org/)
-- **Ollama** - Local AI model runner
-
-## Installation
-
-### 1. Install Ollama
-```bash
-# macOS/Linux
-curl -fsSL https://ollama.com/install.sh | sh
-
-# Windows - download from: https://ollama.com/download/windows
-
-# Download the AI model (one-time, ~4.9GB)
-ollama pull llama3.1:8b
-
-# Verify installation
-ollama list
-```
-
-**Note:** Ollama runs automatically in the background after installation. You don't need to manually start it.
-
-### 2. Setup Python Virtual Environment
-```bash
-cd study-recorder
-
-# Create virtual environment
-python3 -m venv venv
-
-# Activate it
-# On macOS/Linux:
-source venv/bin/activate
-
-# On Windows:
-venv\Scripts\activate
-```
-
-### 3. Install Python Dependencies
-```bash
-# Make sure venv is activated (you should see "(venv)" in your prompt)
-pip install easyocr pillow flask flask-cors
-```
-
-### 4. Install Node Dependencies
-```bash
-npm install
-```
-
-### 5. macOS Users: Grant Screen Recording Permission
-
-When you first try to record, macOS will ask for permission:
-
-1. Go to **System Settings → Privacy & Security → Screen Recording**
-2. You need to enable **BOTH**:
-   - ✅ **Terminal** (this is critical - the app runs through Terminal)
-   - ✅ **Electron** (may also appear in the list)
-3. **Important:** Toggle them ON, then **completely quit and restart the app**
-4. If you still get permission errors, try restarting your Mac
-
-**Note:** The app won't work without Terminal having Screen Recording permission, since you're running it via `npm start` from Terminal.
-
-### 6. Audio Transcription (Optional)
-
-**Two ways to use audio transcription:**
-
-#### Option A: Microphone Transcription (Simple - Works Now!)
-- ✅ QuikSnap will request **microphone permission**
-- ✅ Speak while studying to add your own notes/explanations
-- ✅ Great for: Recording your thoughts, explanations, summaries
-- ❌ Won't capture system audio (YouTube, lectures playing)
-
-**To use:**
-- Just click "Start Recording"
-- Allow microphone when prompted
-- Choose "Audio Only" or "Both" mode
-- Speak your notes while studying!
-
-#### Option B: System Audio (Advanced - Requires Setup)
-To capture audio from videos/lectures playing on your computer:
-
-1. Install **BlackHole** virtual audio device:
-   ```bash
-   brew install blackhole-2ch
-   ```
-
-2. Configure macOS Audio MIDI Setup:
-   - Open "Audio MIDI Setup" app
-   - Create "Multi-Output Device" with:
-     - Built-in Output (so you can hear)
-     - BlackHole 2ch (for app to capture)
-   - Set as system output
-   - Restart QuikSnap
-
-3. Now system audio will be transcribed!
-
-**Recommendation:** 
-- **Microphone mode** is perfect for active studying (explain concepts aloud!)
-- **Visual mode** (screenshots + OCR) works great for passive learning
-- **System audio** only if you really need video lecture transcription
-
-## Running the App
-
-You need **2 terminals** running simultaneously:
-
-### Terminal 1 - OCR Service (keep this open!)
-```bash
-cd study-recorder
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-python ocr-service/ocr_server.py
-```
-
-You should see:
-```
-Loading OCR model...
-OCR ready!
- * Running on http://127.0.0.1:5001
-```
-
-**Keep this terminal open while using the app!**
-
-### Terminal 2 - Electron App
-```bash
-cd study-recorder
-npm start
-```
-
-## Features
-
-- ✅ **Free forever** (no API costs)
-- ✅ **Privacy-first** (runs completely locally)
-- ✅ **Smart deduplication** (skips identical screens)
-- ✅ **Real-time capture** (see live previews)
-- ✅ **Adjustable intervals** (5-60 seconds)
-- ✅ **Beautiful UI** (with live stats)
-- ✅ **AI-generated notes** (comprehensive study summaries)
-- ✅ **Quiz generation** (custom practice questions from your content)
-- ✅ **Copy to clipboard** (export notes & quizzes easily)
-
-## Usage
-
-1. Make sure both services are running (2 terminals)
-2. Click **"Start Recording"** in QuikSnap
-3. Select screen or window to capture
-4. Choose recording mode:
-   - **Smart (Auto)**: Optimizes capture automatically
-   - **Visual Only**: Screenshots + OCR (recommended - works for everything!)
-   - **Audio Only**: Transcription (requires BlackHole setup)
-   - **Both**: Combined mode (requires BlackHole setup)
-5. Study as normal - QuikSnap captures automatically
-6. Click **"Stop Recording"** when finished
-7. Click **"Generate Notes"** to process with AI
-8. Review your notes and **copy them!**
-9. **(Optional)** Generate quiz questions for practice
-
-**Note:** Audio transcription requires additional setup on macOS. Visual mode (screenshots + OCR) works great for most study scenarios!
-
-## Troubleshooting
-
-### "No text extracted" error
-- ✅ Make sure OCR service is running in Terminal 1
-- ✅ Verify venv is activated: `source venv/bin/activate`
-- ✅ Check service is responding: `curl http://localhost:5001/health`
-
-### "Could not start video source" error
-- ✅ Grant Screen Recording permission in System Settings
-- ✅ Completely quit and restart the app (Cmd+Q or Ctrl+C)
-
-### "Error generating notes" error
-- ✅ Verify Ollama is running: `ollama list`
-- ✅ If needed, start Ollama: `ollama serve`
-
-### Port 5000 already in use (macOS)
-The app uses port **5001** to avoid conflicts with Apple's ControlCenter (which uses 5000).
 
 ## Customization
 
-Edit these values in the app:
-- **Capture Interval**: Adjust screenshot frequency (5-60 seconds)
-- **Quiz Questions**: Choose 5-50 questions
-- **Quiz Difficulty**: Easy, Medium, Hard, or Mixed
-- **AI Model**: Change `llama3.1:8b` to other Ollama models in `renderer.js`
+**In the app:**
+- Capture interval (5-60 seconds)
+- Quiz questions (5-50)
+- Quiz difficulty (Easy/Medium/Hard/Mixed)
 
-## Quiz Feature
+**In code:**
+- Change AI model in `renderer.js`: `llama3.1:8b` → any Ollama model
+- Adjust verification claim count (default: 5)
 
-After generating notes, you can create custom quiz questions:
-- **Adjustable quantity**: Generate 5-50 questions
-- **Difficulty levels**: Easy, Medium, Hard, or Mixed
-- **Question types**: Multiple choice, True/False, Short answer
-- **Includes answers & explanations**: Learn from correct answers
-- **Copy & export**: Use in Quizlet, Anki, or print for study
-
-Example quiz format:
-```
-Q1: What is the primary function of mitochondria?
-A) Protein synthesis
-B) Energy production through ATP
-C) DNA replication
-D) Cell division
-Correct Answer: B
-Explanation: Mitochondria are the powerhouse of the cell...
-```
-
-## Tips for Best Results
-
-- 📚 **Visual mode is excellent** - OCR captures text from slides, documents, code perfectly
-- 🎥 Works great for **video lectures** - captures key frames automatically
-- ⏱️ Use **Smart mode** for automatic optimization
-- 💾 Text extraction is **highly accurate** and works for all content
-- 🔊 **Audio transcription** requires BlackHole setup (optional, advanced)
-- ✨ **Combine with manual notes** - QuikSnap captures what you miss!
+---
 
 ## Cost Comparison
 
-| This App | Cloud Alternatives |
-|----------|-------------------|
+| QuikSnap | Cloud Services |
+|----------|----------------|
 | **$0 forever** | $20-45 per 3-hour session |
-| Unlimited sessions | Pay per use |
-| Complete privacy | Data sent to cloud |
-| Runs offline | Requires internet |
+| Unlimited use | Pay per use |
+| 100% private | Data sent to cloud |
+| Works offline | Requires internet |
+
+---
+
+## Tips
+
+- 📚 **Electron**: Perfect for documents, slides, code
+- 🎥 **Browser**: Perfect for video lectures with audio
+- ⏱️ **20-second intervals** work well for most content
+- 💾 **OCR is highly accurate** for text-based material
+- 🔍 **Review flagged facts** - verification catches ~80% of errors
+- 📸 **Click screenshot links** to verify sources yourself
+
+---
 
 ## Support
 
-- Check if Ollama is running: `ollama list`
-- Check if OCR service is running: `curl http://localhost:5001/health`
-- View logs in the terminal windows for debugging
+**Check services:**
+- OCR: `curl http://localhost:5001/health`
+- Ollama: `ollama list`
+- Web server: Look for "Server Running!" in terminal
+
+**Common issues:**
+- Verify Python/Node versions
+- Check all permissions granted
+- Ensure services running in separate terminals
 
 ---
 
 **Enjoy your AI study assistant!** 🎓✨
 
-For questions or issues, check that both services are running and permissions are granted.
+📖 Documents/slides → Use **Electron app** (`npm start`)  
+🎬 Video lectures → Use **Browser version** (`node server.js`)
